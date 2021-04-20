@@ -1,0 +1,51 @@
+---
+# tasks file for prereq
+- name: Install Java and other required packges
+  yum:
+    name: "{{ packages }}"
+  vars:
+    packages:
+    - firewalld
+
+- name: Enable Firewalld
+  systemd:
+      state: started
+      enabled: yes
+      name: firewalld
+
+- name: Configure firewall ports for Elasticsearch
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  loop:
+    - 80/tcp
+    - 443/tcp
+    - 5000/tcp
+    - 5001/tcp
+    - 5001/udp
+    - 5044/tcp
+    - 5400/tcp
+    - 5555/tcp
+    - 5601/tcp
+    - 9000/tcp
+    - 9200/tcp
+    - 9300/tcp
+    - 9400/tcp
+    - 9600/tcp
+
+- name: Add swappiness setting to 1
+  lineinfile:
+    path: /etc/sysctl.d/swap.conf
+    line: vm.swappiness=1
+    create: yes
+
+- name: Change swappiness to 1
+  command: sysctl -p /etc/sysctl.d/swap.conf
+
+- name: Verify swappiness is set to 1
+  command: sysctl vm.swappiness
+  register: result
+
+- debug: msg="swappiness is set to {{ result.stdout }}"

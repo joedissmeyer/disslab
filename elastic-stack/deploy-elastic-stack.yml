@@ -1,0 +1,551 @@
+---
+- hosts: all
+  name: Deploying Elasticsearch - prerequisite
+  become: yes
+  gather_facts: True
+  vars_files:
+  roles:
+    - elastic-bootstrap-checks
+    - java-open-jdk11
+
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install OpenJDK 11 for RHEL-CENTOS
+      yum:
+        name: java-11-openjdk-devel
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "CentOS"
+
+    - name: Install OpenJDK 11 for Ubuntu
+      apt:
+        name: openjdk-11-jdk
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution == "Ubuntu"
+
+- hosts: master_nodes
+  name: Deploying ElasticSearch on Master Nodes
+  vars_files:
+    - "{{ playbook_dir }}/vars/cred_vault.yml"
+  gather_facts: true
+  become: yes
+  roles:
+    - role: elasticsearch
+    - role: curator
+  vars:
+    es_heap_size: "1g"
+    es_log_dir: "/var/log/elasticsearch"
+    es_data_dirs:
+      - "/data"
+    es_xpack_trial: true
+    es_version: "{{ VERSION }}"
+    es_version_lock: true
+    es_enable_transport_ssl: true
+    es_ssl_certificate_authority: "files/ca.crt"
+    es_ssl_key: "files/elasticsearch.key"
+    es_ssl_certificate: "files/elasticsearch.crt"
+    es_enable_xpack: true
+    es_api_basic_auth_username: "elastic"
+    es_api_basic_auth_password: "{{ VAULT_ELKLOGS_ADMIN_PASSWD }}"
+    es_config:
+      cluster.name: "{{ GXI_ENV }}_ELK_LOGS"
+      cluster.initial_master_nodes: "{{ groups['master_nodes'] }}" # Needed for 7.x
+      discovery.seed_hosts: "{{ groups['all'] }}" # Needed for 7.x
+      #discovery.zen.ping.unicast.hosts: "{{ groups['master_nodes'] }}" # Needed for 6.x
+      discovery.zen.minimum_master_nodes: "2"
+      network.bind_host: "0.0.0.0"
+      node.master: true
+      node.data: true
+      network.publish_host: "{{ ansible_ens192.ipv4.address }}"
+      http.port: 9200
+      bootstrap.memory_lock: true
+      xpack.security.audit.enabled: true
+    es_plugins:
+     - plugin: ingest-attachment
+    elasticsearch_curator_action_yaml: |
+      ---
+      actions:
+        1:
+         action: delete_indices
+         description: Delete Indices
+         options:
+           ignore_empty_list: True
+           disable_action: false
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value: '^(swarmservices_logs-|lok8_logs-).*$'
+         - filtertype: age
+           source: name
+           direction: older
+           timestring: '%Y.%m.%d'
+           unit: days
+           unit_count: 7
+
+        2:
+         action: snapshot
+         description: create index snapshots
+         options:
+           ignore_empty_list: True
+           disable_action: false
+           repository: index_snapshots
+           name: <elk_indexsnapshots-{now/d}>
+           wait_for_completion: True
+           max_wait: 3600
+           wait_interval: 10
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value:  '^(swarmservices_logs-|lok8_logs-).*$'
+         - filtertype: age
+           source: creation_date
+           direction: younger
+           unit: days
+           unit_count: 2
+
+        3:
+         action: delete_snapshots
+         description: delete index snapshots
+         options:
+           repository: index_snapshots
+           ignore_empty_list: True
+           retry_interval: 120
+           retry_count: 3
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value: elk_indexsnapshots-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 2
+
+        4:
+         action: delete_indices
+         description: Delete Indices
+         options:
+           ignore_empty_list: True
+           disable_action: false
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value: '^(clickstream-).*$'
+         - filtertype: age
+           source: name
+           direction: older
+           timestring: '%Y.%m.%d'
+           unit: days
+           unit_count: 365
+
+        5:
+         action: snapshot
+         description: create index snapshots
+         options:
+           ignore_empty_list: True
+           disable_action: false
+           repository: index_snapshots
+           name: <elkclickstream_indexsnapshots-{now/d}>
+           wait_for_completion: True
+           max_wait: 3600
+           wait_interval: 10
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value:  clickstream-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 0
+
+        6:
+         action: delete_snapshots
+         description: delete index snapshots
+         options:
+           repository: index_snapshots
+           ignore_empty_list: True
+           retry_interval: 120
+           retry_count: 3
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value: elkclickstream_indexsnapshots-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 10
+
+- hosts: data_nodes
+  name: Deploying ElasticSearch on Data Nodes
+  vars_files:
+    - "{{ playbook_dir }}/vars/vault.yml"
+  gather_facts: true
+  become: yes
+  roles:
+    - role: elasticsearch
+    - role: curator
+  vars:
+    es_heap_size: "1g"
+    es_log_dir: "/var/log/elasticsearch"
+    es_data_dirs:
+      - "/data"
+    es_xpack_trial: true
+    es_version: "{{ VERSION }}"
+    es_version_lock: true
+    es_enable_transport_ssl: true
+    es_ssl_certificate_authority: "files/ca.crt"
+    es_ssl_key: "files/elasticsearch.key"
+    es_ssl_certificate: "files/elasticsearch.crt"
+    es_enable_xpack: true
+    es_api_basic_auth_username: "elastic"
+    es_api_basic_auth_password: "{{ VAULT_ELKLOGS_ADMIN_PASSWD }}"
+    es_templates_fileglob: "files/template"
+    es_config:
+      cluster.name: "{{ GXI_ENV }}_ELK_LOGS"
+      cluster.initial_master_nodes: "{{ groups['master_nodes'] }}" # Needed for 7.x
+      discovery.seed_hosts: "{{ groups['all'] }}" # Needed for 7.x
+      #discovery.zen.ping.unicast.hosts: "{{ groups['master_nodes'] }}" # Needed for 6.x
+      discovery.zen.minimum_master_nodes: "2"
+      network.bind_host: "0.0.0.0"
+      node.data: true
+      node.master: false
+      network.publish_host: "{{ ansible_ens192.ipv4.address }}"
+      http.port: 9200
+      bootstrap.memory_lock: true
+      xpack.security.audit.enabled: true
+    es_plugins:
+      - plugin: ingest-attachment
+    elasticsearch_curator_action_yaml: |
+      ---
+      actions:
+        1:
+         action: delete_indices
+         description: Delete Indices
+         options:
+           ignore_empty_list: True
+           disable_action: false
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value: '^(swarmservices_logs-|lok8_logs-).*$'
+         - filtertype: age
+           source: name
+           direction: older
+           timestring: '%Y.%m.%d'
+           unit: days
+           unit_count: 7
+
+        2:
+         action: snapshot
+         description: create index snapshots
+         options:
+           ignore_empty_list: True
+           disable_action: false
+           repository: index_snapshots
+           name: <elk_indexsnapshots-{now/d}>
+           wait_for_completion: True
+           max_wait: 3600
+           wait_interval: 10
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value:  '^(swarmservices_logs-|lok8_logs-).*$'
+         - filtertype: age
+           source: creation_date
+           direction: younger
+           unit: days
+           unit_count: 2
+
+        3:
+         action: delete_snapshots
+         description: delete index snapshots
+         options:
+           repository: index_snapshots
+           ignore_empty_list: True
+           retry_interval: 120
+           retry_count: 3
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value: elk_indexsnapshots-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 2
+
+        4:
+         action: delete_indices
+         description: Delete Indices
+         options:
+           ignore_empty_list: True
+           disable_action: false
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value: '^(clickstream-).*$'
+         - filtertype: age
+           source: name
+           direction: older
+           timestring: '%Y.%m.%d'
+           unit: days
+           unit_count: 365
+
+        5:
+         action: snapshot
+         description: create index snapshots
+         options:
+           ignore_empty_list: True
+           disable_action: false
+           repository: index_snapshots
+           name: <elkclickstream_indexsnapshots-{now/d}>
+           wait_for_completion: True
+           max_wait: 3600
+           wait_interval: 10
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value:  clickstream-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 0
+
+        6:
+         action: delete_snapshots
+         description: delete index snapshots
+         options:
+           repository: index_snapshots
+           ignore_empty_list: True
+           retry_interval: 120
+           retry_count: 3
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value: elkclickstream_indexsnapshots-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 10
+
+- hosts: coordinator_node
+  name: Installing coordinator_node
+  become: yes
+  gather_facts: true
+  vars_files:
+    - "{{ playbook_dir }}/vars/cred_vault.yml"
+  roles:
+    - role: elasticsearch
+    - role: curator
+  vars:
+    es_heap_size: "1g"
+    es_log_dir: "/var/log/elasticsearch"
+    es_data_dirs:
+      - "/data"
+    es_xpack_trial: true
+    es_version: "{{ VERSION }}"
+    es_version_lock: true
+    es_enable_transport_ssl: true
+    es_ssl_certificate_authority: "files/ca.crt"
+    es_ssl_key: "files/elasticsearch.key"
+    es_ssl_certificate: "files/elasticsearch.crt"
+    es_enable_xpack: true
+    es_api_basic_auth_username: "elastic"
+    es_api_basic_auth_password: "{{ VAULT_ELKLOGS_ADMIN_PASSWD }}"
+    es_templates_fileglob: "files/template"
+    es_roles:
+      native:
+        ro_user:
+          indices:
+            - names: "services*"
+              privileges:
+                - read
+                - view_index_metadata
+                - monitor
+    es_users:
+      native:
+        ro_user:
+          password: "{{ VAULT_RO_USER_PASSWD }}"
+          roles:
+            - ro_user
+    es_config:
+      cluster.name: "{{ GXI_ENV }}_ELK_LOGS"
+      cluster.initial_master_nodes: "{{ groups['master_nodes'] }}" # Needed for 7.x
+      discovery.seed_hosts: "{{ groups['all'] }}" # Needed for 7.x
+      #discovery.zen.ping.unicast.hosts: "{{ groups['master_nodes'] }}" # Needed for 6.x
+      discovery.zen.minimum_master_nodes: "2"
+      node.data: false
+      node.master: false
+      node.ingest: false
+      network.bind_host: "0.0.0.0"
+      network.publish_host: "{{ ansible_ens192.ipv4.address }}"
+      http.port: 9200
+      bootstrap.memory_lock: true
+      xpack.security.audit.enabled: true
+    es_plugins:
+      - plugin: ingest-attachment
+    elasticsearch_curator_action_yaml: |
+      ---
+      actions:
+        1:
+         action: delete_indices
+         description: Delete Indices
+         options:
+           ignore_empty_list: True
+           disable_action: false
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value: '^(swarmservices_logs-|lok8_logs-).*$'
+         - filtertype: age
+           source: name
+           direction: older
+           timestring: '%Y.%m.%d'
+           unit: days
+           unit_count: 7
+
+        2:
+         action: snapshot
+         description: create index snapshots
+         options:
+           ignore_empty_list: True
+           disable_action: false
+           repository: index_snapshots
+           name: <elk_indexsnapshots-{now/d}>
+           wait_for_completion: True
+           max_wait: 3600
+           wait_interval: 10
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value:  '^(swarmservices_logs-|lok8_logs-).*$'
+         - filtertype: age
+           source: creation_date
+           direction: younger
+           unit: days
+           unit_count: 2
+
+        3:
+         action: delete_snapshots
+         description: delete index snapshots
+         options:
+           repository: index_snapshots
+           ignore_empty_list: True
+           retry_interval: 120
+           retry_count: 3
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value: elk_indexsnapshots-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 2
+
+        4:
+         action: delete_indices
+         description: Delete Indices
+         options:
+           ignore_empty_list: True
+           disable_action: false
+         filters:
+         - filtertype: pattern
+           kind: regex
+           value: '^(clickstream-).*$'
+         - filtertype: age
+           source: name
+           direction: older
+           timestring: '%Y.%m.%d'
+           unit: days
+           unit_count: 365
+
+        5:
+         action: snapshot
+         description: create index snapshots
+         options:
+           ignore_empty_list: True
+           disable_action: false
+           repository: index_snapshots
+           name: <elkclickstream_indexsnapshots-{now/d}>
+           wait_for_completion: True
+           max_wait: 3600
+           wait_interval: 10
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value:  clickstream-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 0
+
+        6:
+         action: delete_snapshots
+         description: delete index snapshots
+         options:
+           repository: index_snapshots
+           ignore_empty_list: True
+           retry_interval: 120
+           retry_count: 3
+         filters:
+         - filtertype: pattern
+           kind: prefix
+           value: elkclickstream_indexsnapshots-
+         - filtertype: age
+           source: creation_date
+           direction: older
+           unit: days
+           unit_count: 10
+
+- hosts: coordinator_node
+  name: Kibana Install
+  become: yes
+  vars_files:
+    - "{{ playbook_dir }}/vars/cred_vault.yml" #vaulted creds for elastic passwords
+  roles:
+  - role: kibana-role
+    kibana_log_dir: "/var/log/kibana"
+    kibana_config:
+        server.name: "{{ inventory_hostname }}"
+        server.port: 5601
+        server.host: "{{ ansible_default_ipv4.address }}"
+        elasticsearch.hosts: "http://{{ ansible_default_ipv4.address }}:9200"
+        elasticsearch.username: "elastic"
+        elasticsearch.password: "{{ VAULT_ELKLOGS_ADMIN_PASSWD }}"
+
+- hosts: all
+  name: Install Logstash
+  become: yes
+  vars_files:
+    - "{{ playbook_dir }}/vars/cred_vault.yml" #vaulted creds for elastic passwords
+  roles:
+  - role: geerlingguy.java
+  - role: geerlingguy.logstash
+
+- hosts: elastic_apm
+  become: yes
+  vars_files:
+    - "{{ playbook_dir }}/vars/cred_vault.yml" #vaulted creds for elastic passwords
+  roles:
+    - role: elastic.apm.server
+  vars:
+    - apm_server_version: 7.10.2
+    - apm_server_conf_apm_server_host: localhost:8200
+    - apm_server_conf_output_elasticsearch_hosts: ["localhost:9200"]
+    - apm_server_conf_output_elasticsearch_enabled: true
+    - apm_server_conf_output_elasticsearch_username: elastic
+    - apm_server_conf_output_elasticsearch_password: "{{ VAULT_ES_BASIC_AUTH_PASSWD }}"  
