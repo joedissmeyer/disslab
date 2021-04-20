@@ -6,7 +6,6 @@
   vars_files:
   roles:
     - elastic-bootstrap-checks
-    - java-open-jdk11
 
 - hosts: all
   become: yes
