@@ -1,13 +1,8 @@
 ---
-- hosts: all
-  name: Deploying Elasticsearch - prerequisite
-  become: yes
-  gather_facts: True
-  roles:
-    - elastic-bootstrap-checks
-
 - hosts: elastic-master-nodes
   become: yes
+  roles:
+    - elastic-bootstrap-checks
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
@@ -31,6 +26,8 @@
 
 - hosts: elastic-data-nodes
   become: yes
+  roles:
+    - elastic-bootstrap-checks
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
@@ -54,6 +51,8 @@
 
 - hosts: elastic-ingest-nodes
   become: yes
+  roles:
+    - elastic-bootstrap-checks
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
@@ -77,6 +76,8 @@
 
 - hosts: elastic-client-nodes
   become: yes
+  roles:
+    - elastic-bootstrap-checks
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
