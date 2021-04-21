@@ -1,0 +1,27 @@
+all:
+  children:
+    elastic-master-nodes:
+      hosts:
+        elastic-master1:
+        elastic-master2:
+        elastic-master3:
+    elastic-data-nodes:
+      hosts:
+        elastic-data1:
+        elastic-data2:
+        elastic-data3:
+    elastic-ingest-nodes:
+      hosts:
+        elastic-ingest:
+    elastic-client-nodes:
+      hosts:
+        kibana:
+    elastic-logstash-nodes:
+      hosts:
+        logstash:
+    elastic-kibana-nodes:
+      hosts:
+        kibana:
+    elastic-apm-servers:
+      hosts:
+        elastic-apm:

@@ -6,13 +6,7 @@
   roles:
     - elastic-bootstrap-checks
 
-- hosts: "maingroup"
-  vars_files:
-    - group_vars/maingroup.yml
-
 - hosts: elastic-master-nodes
-  vars_files:
-    - group_vars/elastic-master-nodes.yml
   become: yes
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
@@ -36,8 +30,6 @@
         - ansible_distribution == "Ubuntu"
 
 - hosts: elastic-data-nodes
-  vars_files:
-    - group_vars/elastic-data-nodes.yml
   become: yes
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
@@ -61,8 +53,6 @@
         - ansible_distribution == "Ubuntu"
 
 - hosts: elastic-ingest-nodes
-  vars_files:
-    - group_vars/elastic-ingest-nodes.yml
   become: yes
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
@@ -86,8 +76,6 @@
         - ansible_distribution == "Ubuntu"
 
 - hosts: elastic-client-nodes
-  vars_files:
-    - group_vars/elastic-client-nodes.yml
   become: yes
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
