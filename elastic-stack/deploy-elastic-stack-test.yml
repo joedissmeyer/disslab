@@ -3,11 +3,91 @@
   name: Deploying Elasticsearch - prerequisite
   become: yes
   gather_facts: True
-  vars_files:
   roles:
     - elastic-bootstrap-checks
 
-- hosts: all
+- hosts: "maingroup"
+  vars_files:
+    - group_vars/maingroup.yml
+
+- hosts: elastic-master-nodes
+  vars_files:
+    - group_vars/elastic-master-nodes.yml
+  become: yes
+  tasks:
+    - name: Install OpenJDK 11 for RHEL-CENTOS
+      yum:
+        name: java-11-openjdk-devel
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "CentOS"
+
+    - name: Install OpenJDK 11 for Ubuntu
+      apt:
+        name: openjdk-11-jdk
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution == "Ubuntu"
+
+- hosts: elastic-data-nodes
+  vars_files:
+    - group_vars/elastic-data-nodes.yml
+  become: yes
+  tasks:
+    - name: Install OpenJDK 11 for RHEL-CENTOS
+      yum:
+        name: java-11-openjdk-devel
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "CentOS"
+
+    - name: Install OpenJDK 11 for Ubuntu
+      apt:
+        name: openjdk-11-jdk
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution == "Ubuntu"
+
+- hosts: elastic-ingest-nodes
+  vars_files:
+    - group_vars/elastic-ingest-nodes.yml
+  become: yes
+  tasks:
+    - name: Install OpenJDK 11 for RHEL-CENTOS
+      yum:
+        name: java-11-openjdk-devel
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "RedHat"
+        - ansible_distribution == "CentOS"
+
+    - name: Install OpenJDK 11 for Ubuntu
+      apt:
+        name: openjdk-11-jdk
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "Debian"
+        - ansible_distribution == "Ubuntu"
+
+- hosts: elastic-client-nodes
+  vars_files:
+    - group_vars/elastic-client-nodes.yml
   become: yes
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
