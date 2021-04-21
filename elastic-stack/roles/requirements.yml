@@ -1,5 +1,12 @@
 ---
 - name: elastic.elasticsearch
-  src: https://github.com/elastic/ansible-elasticsearch.git
-  scm: git
-  version: latest
+  src: elastic.elasticsearch
+
+- name: elastic.elasticsearch
+  src: elastic.elasticsearch
+
+- name: geerlingguy.kibana
+  src: geerlingguy.kibana
+
+- name: geerlingguy.logstash
+  src: geerlingguy.logstash

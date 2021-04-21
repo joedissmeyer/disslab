@@ -3,7 +3,7 @@
 Install requirements
 
 ```
-ansible-galaxy install -r .roles/requirements.yml
+ansible-galaxy install -r roles/requirements.yml
 ```
 
 Run the playbook

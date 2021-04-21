@@ -37,8 +37,8 @@
   gather_facts: true
   become: yes
   roles:
-    - role: elasticsearch
-    - role: curator
+    - { role: elastic.elasticsearch }
+    - { role: geerlingguy.elasticsearch-curator }
   vars:
     es_heap_size: "1g"
     es_log_dir: "/var/log/elasticsearch"
@@ -67,8 +67,6 @@
       http.port: 9200
       bootstrap.memory_lock: true
       xpack.security.audit.enabled: true
-    es_plugins:
-     - plugin: ingest-attachment
     elasticsearch_curator_action_yaml: |
       ---
       actions:
@@ -222,8 +220,6 @@
       http.port: 9200
       bootstrap.memory_lock: true
       xpack.security.audit.enabled: true
-    es_plugins:
-      - plugin: ingest-attachment
     elasticsearch_curator_action_yaml: |
       ---
       actions:
@@ -393,8 +389,6 @@
       http.port: 9200
       bootstrap.memory_lock: true
       xpack.security.audit.enabled: true
-    es_plugins:
-      - plugin: ingest-attachment
     elasticsearch_curator_action_yaml: |
       ---
       actions:

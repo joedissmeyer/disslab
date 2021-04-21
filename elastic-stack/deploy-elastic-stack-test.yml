@@ -3,6 +3,8 @@
   become: yes
   roles:
     - elastic-bootstrap-checks
+    - { role: elastic.elasticsearch }
+    - { role: geerlingguy.elasticsearch-curator }
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
@@ -28,6 +30,7 @@
   become: yes
   roles:
     - elastic-bootstrap-checks
+    - { role: elastic.elasticsearch }
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
@@ -53,6 +56,7 @@
   become: yes
   roles:
     - elastic-bootstrap-checks
+    - { role: elastic.elasticsearch }
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
@@ -78,6 +82,7 @@
   become: yes
   roles:
     - elastic-bootstrap-checks
+    - { role: elastic.elasticsearch }
   tasks:
     - name: Install OpenJDK 11 for RHEL-CENTOS
       yum:
