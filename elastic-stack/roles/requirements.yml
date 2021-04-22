@@ -2,9 +2,6 @@
 - name: elastic.elasticsearch
   src: elastic.elasticsearch
 
-- name: elastic.elasticsearch
-  src: elastic.elasticsearch
-
 - name: geerlingguy.kibana
   src: geerlingguy.kibana
 

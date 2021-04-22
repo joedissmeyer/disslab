@@ -7,29 +7,6 @@
   roles:
     - elastic-bootstrap-checks
 
-- hosts: all
-  become: yes
-  tasks:
-    - name: Install OpenJDK 11 for RHEL-CENTOS
-      yum:
-        name: java-11-openjdk-devel
-        state: latest
-        update_cache: yes
-       #cache_valid_time: 3600
-      when:
-        - ansible_os_family == "RedHat"
-        - ansible_distribution == "CentOS"
-
-    - name: Install OpenJDK 11 for Ubuntu
-      apt:
-        name: openjdk-11-jdk
-        state: latest
-        update_cache: yes
-       #cache_valid_time: 3600
-      when:
-        - ansible_os_family == "Debian"
-        - ansible_distribution == "Ubuntu"
-
 - hosts: master_nodes
   name: Deploying ElasticSearch on Master Nodes
   vars_files:
