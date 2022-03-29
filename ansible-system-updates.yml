@@ -1,0 +1,58 @@
+################################################################
+## Playbook to perform system updates and reboot if necessary ##
+################################################################
+#
+# REQUIREMENTS:
+# - Install the required ansible roles.
+#       $ ansible-galaxy install -r requirements.yml --force
+# 
+# RUNNING THIS PLAYBOOK:
+#  
+#  - How to execute against ALL HOSTS in inventory _including_ the Ansible Server:
+#
+#    $ ansible-playbook -i hosts system-updates.yml --private-key ~/.ssh/ansible-user -u ansible-user
+#
+#  - How to execute against all hosts _EXCEPT_ for the Ansible Server:
+#
+#    $ ansible-playbook -i hosts --limit 'ansible' system-updates.yml
+#
+# NOTES:
+#
+# Tested against Fedora 35.
+# 
+
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Install system updates for RedHat-based systems
+      yum:
+        name: '*'
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "RedHat"
+
+    - name: Install system updates for Debian-based systems
+      apt:
+        name: '*'
+        state: latest
+        update_cache: yes
+       #cache_valid_time: 3600
+      when:
+        - ansible_os_family == "Debian"
+
+    - name: Check if a reboot is needed on all servers
+      register: reboot_required_file
+      stat: path=/var/run/reboot-required get_md5=no
+
+    - name: Reboot the box if kernel updated
+      reboot:
+        msg: "Reboot initiated by Ansible for kernel updates"
+        connect_timeout: 5
+        reboot_timeout: 300
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
+      when: reboot_required_file.stat.exists

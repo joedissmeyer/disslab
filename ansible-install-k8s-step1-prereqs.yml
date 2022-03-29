@@ -1,0 +1,117 @@
+## Incomplete. Still testing.
+
+---
+- hosts: kubernetes
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Add Docker-CE repository for Fedora Server
+      get_url:
+        url: https://download.docker.com/linux/fedora/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+
+    - name: Install packages
+      yum: 
+        name:
+          - firewalld
+          - dnf-plugins-core
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - grubby
+        state: present
+    
+    - name: Start and enable firewalld
+      service:
+        state: started
+        enabled: yes
+        name: firewalld
+
+    - name: Configure firewall ports
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        immediate: yes
+        state: enabled
+      loop:
+        - 6443/tcp
+        - 10250/tcp
+
+    - name: Create containerd config file
+      file:
+        path: "/etc/modules-load.d/containerd.conf"
+        state: "touch"
+
+    - name: Add conf for containerd
+      blockinfile:
+        path: "/etc/modules-load.d/containerd.conf"
+        block: |
+            overlay
+            br_netfilter
+
+    - name: modprobe
+      shell: |
+            sudo modprobe overlay
+            sudo modprobe br_netfilter
+    
+    - name: Set system configurations for Kubernetes networking
+      file:
+        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+        state: "touch"
+    
+    - name: Add conf for containerd
+      blockinfile:
+        path: "/etc/sysctl.d/99-kubernetes-cri.conf"
+        block: |
+            net.bridge.bridge-nf-call-iptables = 1
+            net.ipv4.ip_forward = 1
+            net.bridge.bridge-nf-call-ip6tables = 1
+
+    - name: Apply new settings
+      command: sudo sysctl --system
+
+    - name: disable swap
+      shell: |
+          sudo swapoff -a
+          sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+    - name: restart containerd service and enable it at system startup
+      service:
+        name: containerd
+        state: restarted
+        enabled: yes
+
+    - name: disable swap
+      shell: |
+          sudo swapoff -a
+          sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+    - name: Add kubernetes.repo file
+      file:
+        path: "/etc/yum.repos.d/kubernetes.repo"
+        state: "touch"
+
+    - name: Populate kubernetes.repo
+      blockinfile:
+        path: "/etc/yum.repos.d/kubernetes.repo"
+        block: |
+            [kubernetes]
+            name=Kubernetes
+            baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+            enabled=1
+            gpgcheck=1
+            repo_gpgcheck=1
+            gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+    - name: configure SELinux for permissive mode
+      shell: |
+          sudo setenforce 0
+          sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+    - name: install kubernetes tools
+      yum:
+        name: 
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present

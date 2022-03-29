@@ -1,0 +1,22 @@
+#########################################################
+## Playbook to install Docker CE on Kubernetes hosts   ##
+#########################################################
+#
+# REQUIREMENTS:
+# - Install the required ansible roles.
+#       $ ansible-galaxy install -r requirements.yml --force
+# - Sensitive credentials saved under an ansible vault protected yml in './vars'.
+# 
+# RUNNING THIS PLAYBOOK:
+#  
+#  $ ansible-playbook -i ./hosts --private-key ~/.ssh/ansible-user -u ansible-user --ask-vault-password ansible-install-docker-ce.yml
+#
+# NOTES:
+#
+# Tested against Fedora 35.
+# 
+
+- name: Install docker-ce
+  hosts: kubernetes
+  roles:
+    - role: haxorof.docker_ce

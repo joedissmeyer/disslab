@@ -1,0 +1,21 @@
+---
+
+### Node Exporter Defaults
+
+node_exporter_version: 1.3.1
+
+### Prometheus Defaults
+
+prometheus_port: 9091
+prometheus_version: 2.34.0
+prometheus_scrape_ports: 
+  node: 9100
+  prometheus: "{{ prometheus_port }}"
+  elasticsearch: 9114
+
+prometheus_storage_retention: 7d
+
+prometheus_global:
+  scrape_interval: 1m
+  scrape_timeout: 10s
+  evaluation_interval: 1m

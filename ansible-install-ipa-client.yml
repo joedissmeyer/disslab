@@ -1,0 +1,44 @@
+##########################################################
+## Playbook to install FreeIPA Clients on DISSLAB hosts ##
+##########################################################
+#
+# REQUIREMENTS:
+# - Install the required ansible roles.
+#       $ ansible-galaxy install -r requirements.yml --force
+# - Sensitive credentials must be saved under an ansible vault protected yml in './vars'.
+# 
+# RUNNING THIS PLAYBOOK:
+#  
+#  $ ansible-playbook -v -i hosts --private-key ~/.ssh/ansible-user -u ansible-user --ask-vault-password ansible-install-ipa-client.yml
+#
+# NOTES:
+#
+# Tested against Fedora 35.
+# 
+
+---
+- name: host file update - Local DNS setup across all the servers
+  hosts: ipaclients
+  gather_facts: yes
+  tasks:
+  - name: Update the /etc/hosts file with node name
+    tags: etchostsupdate
+    become: yes
+    lineinfile:
+      path: "/etc/hosts"
+      insertafter: '^::1'
+      line: "192.168.0.201 ipa.disslab.local ipa"
+
+- name: Configure IPA clients
+  hosts: ipaclients
+  become: true
+  vars:
+    - ipadmin_principal: "{{ vault_ipaadmin_principal }}"
+    - ipaadmin_password: "{{ vault_ipaadmin_password }}"
+    - ipadm_password: "{{ vault_ipadm_password }}"
+    - ipaserver_domain: disslab.local
+    - ipaserver_realm: DISSLAB.LOCAL
+    - ipaclient_servers: ipa.disslab.local
+  roles:
+  - role: freeipa.ansible_freeipa.ipaclient
+    state: present

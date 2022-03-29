@@ -1,0 +1,17 @@
+---
+collections: []
+roles:
+- src: haxorof.docker_ce
+- src: robertdebock.selinux
+
+- name: cloudalchemy.prometheus
+  src: https://github.com/cloudalchemy/ansible-prometheus.git
+
+- name: cloudalchemy.node-exporter
+  src: https://github.com/cloudalchemy/ansible-node-exporter.git
+
+- name: cloudalchemy.blackbox-exporter
+  src: https://github.com/cloudalchemy/ansible-blackbox-exporter.git
+
+collections:
+- name: freeipa.ansible_freeipa

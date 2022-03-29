@@ -1,0 +1,38 @@
+---
+## Prometheus scrape configs
+
+prometheus_targets:
+  node:
+    - targets:
+      - "192.168.0.201:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.202:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.203:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.204:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.205:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.206:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.207:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.208:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.209:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.210:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.211:{{ prometheus_scrape_ports.node }}"
+      - "192.168.0.212:{{ prometheus_scrape_ports.node }}"
+      labels:
+        environment: disslab
+
+  prometheus:
+    - targets:
+      - "192.168.0.202:{{ prometheus_scrape_ports.prometheus }}"
+      labels:
+        environment: disslab
+
+prometheus_scrape_configs:
+
+  - job_name: node
+    file_sd_configs:
+      - files:
+        - "/etc/prometheus/file_sd/node.yml"
+    
+  - job_name: prometheus
+    file_sd_configs:
+      - files:
+        - "/etc/prometheus/file_sd/prometheus.yml"

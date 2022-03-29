@@ -1,0 +1,24 @@
+/var/log/cron
+/var/log/maillog
+/var/log/messages
+/var/log/secure
+/var/log/spooler
+/var/log/kern
+/var/log/daemon
+/var/log/syslog
+{
+    sharedscripts
+    dateformat %Y%m%d%H
+    daily
+    compress
+    delaycompress
+    missingok
+    notifempty
+    olddir /var/log/syslogRotated
+    size 5G
+    rotate 5
+    create 0600 root root
+    postrotate
+        /bin/kill -HUP 'cat /var/run/syslog.pid 2> /dev/null' 2? /dev/null || true
+    endscript
+}

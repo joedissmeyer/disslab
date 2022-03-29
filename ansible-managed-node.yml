@@ -1,0 +1,63 @@
+# Ansible playbook for _initial setup_ for new hosts to become Ansible Managed
+# 
+# You will run this playbook _from your Ansible control node_
+# which is either your workstation itself or a dedicated Ansible control server.
+#
+################
+# REQUIREMENTS: 
+################
+#
+# - Your host target(s) _must_ already be online and accessible. Clear your SSH known_hosts in your profile if required.
+# - You _must_ use a user account that has root/sudo access to each target(s) in the inventory.
+# - This means that the same root/sudo user account (as well as the same password) must exist on each target in the inventory file.
+#
+############################
+# How to run this playbook:
+############################
+#
+# 1. Navigate to the root of the directory where `ansible-manage-node.yml` exists.
+# 2. Generate an SSH key pair for the ansible user.
+#
+#    $ cd ~/.ssh
+#    $ ssh-keygen -b 2048 -t rsa -f ~/.ssh/ansible-user -q -N ""
+#
+# 3. Create your inventory file.
+# 4. Run the playbook. Enter the account password when prompted.
+#    Example:
+#    
+#    $ ansible-playbook -i myinventory ansible-managed-node.yml -u mysudouser -K
+#    
+#      NOTE: You will be asked for your 'mysudouser' password TWICE (one for the remote connection, the other for sudo access). This is expected.
+#
+# 5. Testing, use the ansible ad-hoc "ping" command. Note: I'm defining the inventory file, the user account, and the user account's private-key.
+#    Example: 
+#
+#    $ ansible -i myinventory all -m ping -u ansible-user --private-key ~/.ssh/ansible-user
+#
+
+- name: Initial Setup
+  vars_prompt:
+    - name: "ansible_ssh_pass"
+      prompt: "password for remote connection?"
+      private: yes
+  hosts: all
+  become: yes
+  tasks:
+    - name: Create the ansible control user account on the target
+      become: yes
+      user:
+        name: ansible-user
+        state: present
+    - name: Add ansible-user to sudoers
+      become: yes
+      lineinfile:
+        path: /etc/sudoers.d/ansible-user
+        line: "ansible-user        ALL=(ALL)       NOPASSWD: ALL"
+        state: present
+        create: true
+    - name: Set authorized key
+      become: yes
+      authorized_key:
+        user: ansible-user
+        state: present
+        key: "{{ lookup('file', '~/.ssh/ansible-user.pub') }}"

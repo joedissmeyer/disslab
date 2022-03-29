@@ -1,0 +1,188 @@
+#########################################################
+## Playbook to Bootstrap and Standardize DISSLAB Hosts ##
+#########################################################
+#
+# REQUIREMENTS:
+# - Install the required ansible roles. 
+#       $ ansible-galaxy install -r requirements.yml --force
+# - Sensitive credentials saved under an ansible vault protected yml in './vars'.
+# 
+# RUNNING THIS PLAYBOOK:
+#  
+#  $ ansible-playbook -i ./hosts --private-key ~/.ssh/ansible-user -u ansible-user --ask-vault-password ansible-disslab-bootstrap.yml
+#
+# NOTES:
+#
+# Tested against Fedora 35.
+# 
+
+---
+
+- name: Install Required Packages for RedHat distros
+  hosts: all
+  become: yes
+  tags:
+    - packages
+  tasks:
+    - name: Install yum packages
+      yum:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - firewalld
+        - cronie
+        - nc
+        - tcpdump
+        - tree
+        - sos
+        - vim
+        - bash-completion
+        - zip
+        - unzip
+        - wget
+        - sysstat
+        - logrotate
+        - screen
+        - psmisc
+        - iotop
+        - gdisk
+        - lsof
+        - bind-utils
+        - yum-utils
+        - net-tools
+        - setroubleshoot
+        - libsemanage
+        - python-firewall
+        - lvm2
+      ignore_errors: true
+
+- name: Configure journald logging
+  hosts: all
+  become: true
+  tags:
+    - journald
+    - logging
+  tasks:
+    - name: create /var/log/journal
+      file:
+        path: /var/log/journal
+        state: directory
+        mode: '2755'
+
+    - name: restart journald
+      systemd:
+        name: systemd-journald
+        state: restarted
+
+- name: Configure logrotate
+  hosts: all
+  become: true
+  tags:
+    - logrotate
+    - logging
+  tasks:
+    - name: update logrotate
+      yum:
+        name: logrotate
+        state: latest
+      ignore_errors: yes
+    
+    - name: syslog config for logrotate
+      template:
+        src: syslog.j2
+        dest: /etc/logrotate.d/syslog
+        mode: '0644'
+        force: yes
+    
+    - name: add log configs to logrotate
+      template:
+        src: 30-system.conf.j2
+        dest: /etc/rsyslog.d/30-system.conf
+        mode: '0644'
+        force: yes
+    
+    - name: create /var/log/syslogRotated
+      file:
+        path: /var/log/syslogRotated
+        state: directory
+
+    - name: touch logs if they don't exist
+      file:
+        path: "{{ item }}"
+        state: touch
+      loop:
+        - /var/log/kern
+        - /var/log/cron
+        - /var/log/maillog
+        - /var/log/messages
+        - /var/log/secure
+        - /var/log/spooler
+        - /var/log/daemon
+        - /var/log/syslog
+        - /var/log/yum.log
+        - /var/log/sudo.log
+
+    - name: run logrotate
+      shell: logrotate -f /etc/logrotate.d/syslog
+
+- name: Configure SSH login message (motd)
+  hosts: all
+  become: true
+  tags:
+    - motd
+    - banner
+  tasks:
+    # add issue.net to /etc/ directory
+    - name: copy welcome banner
+      copy:
+        src: issue.net
+        dest: /etc/issue.net
+        mode: '0644'
+
+    # copy scripts aliases.sh and colorbashprompt.sh to /etc/profile.d/
+    - name: copy dynamic motd
+      copy:
+        src: "{{ item }}"
+        dest: /etc/profile.d/
+        mode: '0644'
+      loop:
+        - aliases.sh
+        - colorbashprompt.sh
+        - login.sh
+
+    # update /etc/ssh/sshd_config to enable welcome banner
+    - name: Enable welcome banner in /etc/ssh/sshd_config
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: '^#Banner' 
+        line: Banner /etc/issue.net
+        state: present
+
+    # update /etc/ssh/sshd_config to enable motd
+    - name: Enable motd in /etc/ssh/sshd_config
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "^PrintMotd"
+        line: PrintMotd yes
+        state: present
+
+    # restart sshd
+    - name: Restart sshd to apply new settings
+      service: 
+        name: sshd
+        state: restarted
+
+  # kernel cleanup cron.monthly
+- name: adding cron job for monthly kernel cleanup
+  hosts: all
+  become: true
+  tags:
+    - cron
+    - cleanup
+  tasks:
+    - name: adding cron job for monthly kernel cleanup
+      cron:
+        name: "Kernel maintenance"
+        job: "package-cleanup -y --oldkernels --count=2"
+        day: "15"
+        hour: "2"

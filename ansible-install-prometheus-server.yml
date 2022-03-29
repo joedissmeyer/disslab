@@ -1,0 +1,53 @@
+###########################################
+## Playbook to install Prometheus Server ##
+###########################################
+#
+# REQUIREMENTS:
+# - Install the required ansible roles. 
+#       $ ansible-galaxy install -r requirements.yml --force
+# - {{playbook_dir}}/group_vars/prometheus/prometheus.yml file must exist. This file contains all of the standard config variables for prometheus server to run.
+# - {{playbook_dir}}/vars/prometheus-vars.yml must exist. This file contains all of the targets and scrape configs.
+# 
+# RUNNING THIS PLAYBOOK:
+#  
+#  $ ansible-playbook -i ./hosts --private-key ~/.ssh/ansible-user -u ansible-user ansible-install-prometheus-server.yml -l prometheus
+#
+# NOTES:
+#
+# - The web listen port has been changed from the default of '9090' to '9091'.
+# - This is because Fedora Server uses port 9090 to serve up the Server Cockpit utility which I didn't want to disable.
+# 
+
+---
+
+- name: Load prometheus and scrape target variables
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Read vars file into memory
+      stat:
+        path: "{{ playbook_dir}}/vars/prometheus-vars.yml"
+        get_attributes: yes
+      register: promconfig
+      delegate_to: localhost
+
+    - name: Load vars
+      include_vars: "prometheus-vars.yml"
+      when: promconfig.stat.exists
+
+- name: Install Prometheus Server
+  hosts: all
+  tags:
+    - prometheus
+  become: true
+  roles:
+    - role: cloudalchemy.prometheus
+  vars: 
+    - prometheus_web_listen_address: "0.0.0.0:9091"
+  tasks:
+    - name: Configure firewalld ports for prometheus
+      firewalld:
+        port: 9091/tcp
+        permanent: yes
+        immediate: yes
+        state: enabled
