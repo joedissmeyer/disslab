@@ -17,6 +17,11 @@
 # 
 
 - name: Install docker-ce
-  hosts: kubernetes
+  hosts: ansible
+  become: true
+  tags:
+    - docker
   roles:
     - role: haxorof.docker_ce
+  vars:
+    docker_compose: true

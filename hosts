@@ -6,36 +6,32 @@ ipa.disslab.local              ansible_host=192.168.0.201  ansible_python_interp
 [prometheus]
 prometheus.disslab.local       ansible_host=192.168.0.202  ansible_python_interpreter='python3'
 
-[rancher-masters]
-kube1.disslab.local            ansible_host=192.168.0.203  ansible_python_interpreter='python3'
+[ansible]
+ansible.disslab.local          ansible_host=192.168.0.203  ansible_python_interpreter='python3'
 
-[rancher-workers]
-kube2.disslab.local            ansible_host=192.168.0.204  ansible_python_interpreter='python3'
-kube3.disslab.local            ansible_host=192.168.0.205  ansible_python_interpreter='python3'
+[kibana]
+kibana.disslab.local           ansible_host=192.168.0.211  ansible_python_interpreter='python3'
 
-[kubernetes:children]
-rancher-masters
-rancher-workers
-
-[elastic-master]
-elastic-master-1.disslab.local ansible_host=192.168.0.206  ansible_python_interpreter='python3'
-elastic-master-2.disslab.local ansible_host=192.168.0.207  ansible_python_interpreter='python3'
-elastic-master-3.disslab.local ansible_host=192.168.0.208  ansible_python_interpreter='python3'
-
-[elastic-data]
-elastic-data-1.disslab.local   ansible_host=192.168.0.209  ansible_python_interpreter='python3'
-elastic-data-2.disslab.local   ansible_host=192.168.0.210  ansible_python_interpreter='python3'
-elastic-data-3.disslab.local   ansible_host=192.168.0.211  ansible_python_interpreter='python3'
-
-[elastic-client]
+[logstash]
 kibana.disslab.local           ansible_host=192.168.0.212  ansible_python_interpreter='python3'
 
+[elastic_master]
+elastic-master-1.disslab.local ansible_host=192.168.0.221  ansible_python_interpreter='python3'
+elastic-master-2.disslab.local ansible_host=192.168.0.222  ansible_python_interpreter='python3'
+elastic-master-3.disslab.local ansible_host=192.168.0.223  ansible_python_interpreter='python3'
+
+[elastic_data]
+elastic-data-1.disslab.local   ansible_host=192.168.0.231  ansible_python_interpreter='python3'
+elastic-data-2.disslab.local   ansible_host=192.168.0.232  ansible_python_interpreter='python3'
+elastic-data-3.disslab.local   ansible_host=192.168.0.233  ansible_python_interpreter='python3'
+
 [elastic:children]
-elastic-client
-elastic-data
-elastic-master
+kibana
+logstash
+elastic_data
+elastic_master
 
 [ipaclients:children]
+ansible
 elastic
-kubernetes
 prometheus
