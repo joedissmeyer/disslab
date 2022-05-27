@@ -22,12 +22,10 @@
 #    $ ssh-keygen -b 2048 -t rsa -f ~/.ssh/ansible-user -q -N ""
 #
 # 3. Create your inventory file.
-# 4. Run the playbook. Enter the account password when prompted.
+# 4. Run the playbook.
 #    Example:
 #    
-#    $ ansible-playbook -i myinventory ansible-managed-node.yml -u mysudouser -K
-#    
-#      NOTE: You will be asked for your 'mysudouser' password TWICE (one for the remote connection, the other for sudo access). This is expected.
+#    $ ansible-playbook -i myinventory -u mysudouser --private-key ~/.ssh/myprivatekey ansible-managed-node.yml
 #
 # 5. Testing, use the ansible ad-hoc "ping" command. Note: I'm defining the inventory file, the user account, and the user account's private-key.
 #    Example: 
@@ -36,10 +34,6 @@
 #
 
 - name: Initial Setup
-  vars_prompt:
-    - name: "ansible_ssh_pass"
-      prompt: "password for remote connection?"
-      private: yes
   hosts: all
   become: yes
   tasks:

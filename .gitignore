@@ -1,0 +1,26 @@
+### Vagrant ###
+# General
+.vagrant/
+vagrant/.vagrant/
+vagrant.zip
+.DS_store
+files/.DS_store
+
+### Terraform stuff ###
+Terraform/.terraform
+Terraform/.terraform.lock.hcl
+Terraform/terraform.tfstate
+Terraform/terraform.tfstate.*
+Terraform/*.log
+
+### Elasticsearch role ###
+roles/elasticsearch/.kitchen/
+roles/elasticsearch/license*.json
+roles/elasticsearch/*.pyc
+roles/elasticsearch/.vendor
+roles/elasticsearch/.bundle
+roles/elasticsearch/Converging
+roles/elasticsearch/TODO
+roles/elasticsearch/.idea/
+roles/elasticsearch/elasticsearch.iml
+roles/elasticsearch/!/vars/RedHat.yml

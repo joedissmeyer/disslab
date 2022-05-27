@@ -18,6 +18,28 @@
 
 ---
 
+- name: Configure DNS client settings for systemd-resolved on Fedora 36
+  hosts: all
+  become: yes
+  tags:
+    - dns
+    - systemd-resolved
+  tasks:
+    - name: Set primary DNS server
+      replace:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#DNS='
+        replace: 'DNS=8.8.8.8'
+    - name: Set secondary DNS server
+      replace:
+        path: /etc/systemd/resolved.conf
+        regexp: '^#FallbackDNS='
+        replace: 'FallbackDNS=8.8.4.4'
+    - name: restart systemd-resolved service
+      service:
+        name: systemd-resolved
+        state: restarted
+
 - name: Install Required Packages for RedHat distros
   hosts: all
   become: yes
