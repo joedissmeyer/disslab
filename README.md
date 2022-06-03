@@ -38,6 +38,7 @@ NOTE: This particular playbook sets up the prometheus server to listen on port 9
 
 ## ansible-managed-node.yml
 
+* This needs to be the first playbook run for a new lab build.
 Ansible playbook for _initial setup_ for new hosts to become Ansible managed.
 
 ## ansible-system-updates.yml
