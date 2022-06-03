@@ -12,7 +12,6 @@ alias l.='ls -dG .*'
 alias la='ls -GFlash'
 alias ll='ls -GFlsh'
 alias ls='ls -GF'
-alias wget='wget -C'
 
 if command -v vim >/dev/null 2>&1; then
   alias vi='vim'
